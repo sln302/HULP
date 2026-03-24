@@ -17,6 +17,10 @@
 #include "hal/adc_types.h"
 #include "soc/rtc.h"
 #include "soc/adc_periph.h"
+#include "soc/rtc_cntl_reg.h"
+#include "soc/sens_reg.h"
+#include "soc/rtc_io_reg.h"
+
 
 #include "hulp.h"
 #include "hulp_compat.h"
@@ -211,15 +215,34 @@ void hulp_peripherals_on(void)
 
 void hulp_configure_hall_effect_sensor(void)
 {
-    //GPIO 36
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_6);
-    //GPIO 39
-    adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_6);
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_ulp_enable();
+    // 1. Initialize the ADC1 Unit Handle
+    adc_oneshot_unit_handle_t adc1_handle;
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+        .ulp_mode = ADC_ULP_MODE_FSM, // Required for ULP/Hall sensor hardware access
+    };
+    
+    // Create the unit. Note: In a production app, you'd want to handle the esp_err_t
+    adc_oneshot_new_unit(&init_config, &adc1_handle);
+
+    // 2. Configure Channel 0 (GPIO 36) and Channel 3 (GPIO 39)
+    adc_oneshot_chan_cfg_t config = {
+        .bitwidth = ADC_BITWIDTH_12,
+        .atten = ADC_ATTEN_DB_6,
+    };
+    
+    adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_0, &config);
+    adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_3, &config);
+
+    // 3. Hardware-specific Hall Sensor Overrides
+    // These registers remain the same as they are low-level hardware bits 
+    // that the driver doesn't touch directly.
+    
+    // Set Hall phase and power-down force
     REG_SET_BIT(SENS_SAR_TOUCH_CTRL1_REG, SENS_HALL_PHASE_FORCE);
     REG_SET_BIT(SENS_SAR_TOUCH_CTRL1_REG, SENS_XPD_HALL_FORCE);
-    //Connect sensor to 36 and 39
+    
+    // Connect the internal sensor to the pins
     REG_SET_BIT(RTC_IO_HALL_SENS_REG, RTC_IO_XPD_HALL);
 }
 
