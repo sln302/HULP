@@ -27,7 +27,7 @@ Functions to configure GPIOs in preparation for the ULP
 ```
 hulp_configure_pin(GPIO_NUM_25, RTC_GPIO_MODE_INPUT_ONLY, GPIO_PULLUP_ONLY, 0);
 hulp_configure_pin(GPIO_NUM_26, RTC_GPIO_MODE_OUTPUT_ONLY, GPIO_FLOATING, 1);
-hulp_configure_analog_pin(GPIO_NUM_33, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12);
+hulp_configure_analog_pin(GPIO_NUM_33, ADC_ATTEN_DB_11, ADC_BITWIDTH_12);
 ```
 Countless macros to simplify ULP GPIO operations
 ```

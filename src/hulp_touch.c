@@ -1,10 +1,15 @@
 #include "hulp_touch.h"
 
 #include "esp_log.h"
-#include "driver/touch_pad.h"
+/* Use the new touch_sens public API where available for newer IDF.
+ * Some legacy types and helper functions still come from the legacy touch
+ * driver; include the legacy header (which does not emit the deprecation
+ * warning) to access those types when required.
+ */
+#include "driver/touch_sens.h"
+#include "driver/touch_sensor_legacy.h"
 #include "soc/touch_sensor_channel.h"
 #include "soc/touch_sensor_periph.h"
-#include "hal/touch_sensor_hal.h"
 
 #include "hulp_config.h"
 
@@ -38,7 +43,15 @@ esp_err_t hulp_configure_touch_controller(const hulp_touch_controller_config_t *
         return err;
     }
     
-    touch_hal_set_meas_time(config->fastclk_meas_cycles);
+    /*
+     * IDF 5.5 deprecates touch_pad_set_meas_time. Use the newer APIs instead:
+     * - touch_pad_set_measurement_clock_cycles(meas_cycle)
+     * - touch_pad_set_measurement_interval(interval_cycle)
+     * Map the previous meas_cycle -> measurement_clock_cycles and keep interval 0
+     * to preserve previous behaviour.
+     */
+    touch_pad_set_measurement_clock_cycles(config->fastclk_meas_cycles);
+    touch_pad_set_measurement_interval(0);
     return ESP_OK;
 }
 

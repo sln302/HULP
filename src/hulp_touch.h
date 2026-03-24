@@ -2,7 +2,13 @@
 #define HULP_TOUCH_H
 
 #include "driver/gpio.h"
-#include "driver/touch_pad.h"
+/* Use the new touch_sens public API where available for newer IDF.
+ * Some legacy types and helper functions still come from the legacy touch
+ * driver; include the legacy header (which does not emit the deprecation
+ * warning) to access those types when required.
+ */
+#include "driver/touch_sens.h"
+#include "driver/touch_sensor_legacy.h"
 
 #include "hulp.h"
 

@@ -16,6 +16,7 @@ set(requires
     esp_adc
     soc
     hal
+    esp_driver_touch_sens
 )
 
 idf_component_register(
