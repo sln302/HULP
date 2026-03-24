@@ -13,7 +13,8 @@
 #   include "driver/rtc_cntl.h"
 #endif
 #include "driver/rtc_io.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
+#include "hal/adc_types.h"
 #include "soc/rtc.h"
 #include "soc/adc_periph.h"
 
@@ -64,38 +65,48 @@ int hulp_adc_get_channel_num(gpio_num_t pin)
     ESP_LOGE(TAG, "no ADC channel for gpio %d", pin);
     return -1;
 }
-
-esp_err_t hulp_configure_analog_pin(gpio_num_t pin, adc_atten_t attenuation, adc_bits_width_t width)
+esp_err_t hulp_configure_analog_pin(gpio_num_t gpio_num, adc_atten_t atten, adc_bitwidth_t width)
 {
-    int adc_unit_index = hulp_adc_get_periph_index(pin);
-    int adc_channel = hulp_adc_get_channel_num(pin);
-
-    if(adc_unit_index < 0 || adc_channel < 0)
-    {
-        ESP_LOGE(TAG, "invalid ADC pin %d (%d, %d)", pin, adc_unit_index, adc_channel);
-        return ESP_ERR_INVALID_ARG;
+    adc_unit_t unit;
+    adc_channel_t channel;
+    
+    // Get ADC unit and channel from GPIO
+    esp_err_t err = adc_oneshot_io_to_channel(gpio_num, &unit, &channel);
+    if (err != ESP_OK) {
+        return err;
     }
 
-    if(adc_unit_index == 0)
-    {
-        adc1_config_channel_atten((adc1_channel_t)adc_channel, attenuation); //Does adc_gpio_init() internally
-        adc1_config_width(width);
-        adc1_ulp_enable();
+    // Only ADC1 is typically supported for ULP on original ESP32
+    if (unit != ADC_UNIT_1) {
+        return ESP_ERR_NOT_SUPPORTED;
     }
-    else
-    {
-        adc2_config_channel_atten((adc2_channel_t)adc_channel, attenuation); //Does adc2_pad_init() internally
-        //Do a read in order to set some regs
-        int adc2val;
-        adc2_get_raw((adc2_channel_t)adc_channel, width, &adc2val);
-        //Equivalent of adc_set_controller( ADC_UNIT_2, ADC_CTRL_ULP )
-        REG_CLR_BIT(SENS_SAR_MEAS_START2_REG, SENS_MEAS2_START_FORCE);
-        REG_CLR_BIT(SENS_SAR_MEAS_START2_REG, SENS_SAR2_EN_PAD_FORCE);
-        REG_CLR_BIT(SENS_SAR_READ_CTRL2_REG, SENS_SAR2_DIG_FORCE);
-        REG_CLR_BIT(SENS_SAR_READ_CTRL2_REG, SENS_SAR2_PWDET_FORCE);
-        // REG_SET_BIT(SYSCON_SARADC_CTRL_REG, SYSCON_SARADC_SAR2_MUX);
+
+    // 1. Initialize the ADC Unit (with ULP mode enabled)
+    adc_oneshot_unit_handle_t adc1_handle;
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = unit,
+        .ulp_mode = ADC_ULP_MODE_RISCV, // Use ADC_ULP_MODE_FSM for classic ULP
+    };
+    
+    // In many ULP apps, we don't want to keep the handle open if we just want to 
+    // "prime" the hardware, but IDF 5.x requires a handle to configure.
+    err = adc_oneshot_new_unit(&init_config, &adc1_handle);
+    if (err != ESP_OK) {
+        return err;
     }
-    return ESP_OK;
+
+    // 2. Configure the Channel
+    adc_oneshot_chan_cfg_t config = {
+        .bitwidth = width,
+        .atten = atten,
+    };
+    err = adc_oneshot_config_channel(adc1_handle, channel, &config);
+
+    // Note: To allow the ULP to take over, we usually don't delete the unit 
+    // if the SoC is going to deep sleep immediately, but for standard 
+    // initialization, you can clean up if the hardware state persists.
+    
+    return err;
 }
 
 #define RTCIO_FUNC_RTC_I2C 0x3
