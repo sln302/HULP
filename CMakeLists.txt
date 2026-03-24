@@ -13,6 +13,7 @@ set(srcs
 set(requires
     ulp
     driver
+    esp_adc
     soc
     hal
 )
