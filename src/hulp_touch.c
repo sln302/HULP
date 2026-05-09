@@ -8,8 +8,8 @@
  */
 #include "driver/touch_sens.h"
 #include "driver/touch_sensor_legacy.h"
+#include "hal/touch_sensor_periph.h"
 #include "soc/touch_sensor_channel.h"
-#include "soc/touch_sensor_periph.h"
 
 #include "hulp_config.h"
 
@@ -17,7 +17,7 @@ static const char* TAG = "HULP-TCH";
 
 int hulp_touch_get_pad_num(gpio_num_t pin)
 {
-    for(int i = 0; i < SOC_TOUCH_SENSOR_NUM; ++i)
+    for(int i = 0; i < TOUCH_PAD_MAX; ++i)
     {
         if(touch_sensor_channel_io_map[i] == pin) return i;
     }

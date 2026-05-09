@@ -13,10 +13,11 @@
 #   include "driver/rtc_cntl.h"
 #endif
 #include "driver/rtc_io.h"
+#include "hal/rtc_io_periph.h"
 #include "esp_adc/adc_oneshot.h"
 #include "hal/adc_types.h"
+#include "hal/adc_periph.h"
 #include "soc/rtc.h"
-#include "soc/adc_periph.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/sens_reg.h"
 #include "soc/rtc_io_reg.h"
@@ -750,7 +751,7 @@ bool hulp_is_deep_sleep_wakeup(void)
 
 bool hulp_is_ulp_wakeup(void)
 {
-    return (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_ULP);
+    return (esp_sleep_get_wakeup_causes() & BIT(ESP_SLEEP_WAKEUP_ULP));
 }
 
 esp_err_t hulp_ulp_isr_register(intr_handler_t handler, void* handler_arg)
@@ -834,7 +835,7 @@ uint32_t hulp_get_fast_clk_freq(void)
     if (!clk_8m_enabled || !clk_8md256_enabled) {
         rtc_clk_8m_enable(true, true);
     }
-    uint32_t ret = (uint32_t)(1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_clk_cal(RTC_CAL_8MD256, CONFIG_HULP_FAST_CLK_CAL_CYCLES));
+    uint32_t ret = (uint32_t)(1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_clk_cal(CLK_CAL_RC_FAST_D256, CONFIG_HULP_FAST_CLK_CAL_CYCLES));
     if (!clk_8m_enabled || !clk_8md256_enabled) {
         rtc_clk_8m_enable(clk_8m_enabled, clk_8md256_enabled);
     }

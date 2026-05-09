@@ -3,7 +3,8 @@
 
 #include "soc/soc.h"
 #include "soc/soc_caps.h"
-#include "soc/rtc_io_periph.h"
+#include "soc/rtc_io_channel.h"
+#include "hal/rtc_io_types.h"   // Required if you still access rtc_io_desc[] directly
 #include "soc/rtc_io_channel.h"
 #include "soc/rtc_io_reg.h"
 #include "soc/rtc_cntl_reg.h"
